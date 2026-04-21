@@ -246,10 +246,15 @@ def main():
                         break
                         
                 if czy_rysowac and len(punkty_na_ekranie) >= 3:
-                    kolor = obiekt.color if obiekt.color else (200, 200, 200)
+
+                    if obiekt.color: 
+                        kolor = obiekt.color
+                    else:
+                        kolor = (255, 255, 255)
+                        
                     pygame.draw.polygon(screen, kolor, punkty_na_ekranie)
                     pygame.draw.polygon(screen, (0, 0, 0), punkty_na_ekranie, 2)
-                    
+
         pygame.display.flip()
 
         clock.tick(60) #fps  
