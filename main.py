@@ -216,44 +216,35 @@ def main():
         for obiekt in scena.obiekty:
             przetransformowane_wezly = []
             for w in obiekt.wezly:
-                przetransformowane_wezly.append(macierz_widoku @ w)
+
+                wezel = macierz_widoku @ w
+
+                przetransformowane_wezly.append(wezel)
 
             for sciana in obiekt.krawedzie:
-                '''
-                for i in range(len(sciana) - 1):
-                    id_poczatkowy = sciana[i] - 1
-                    id_koncowy = sciana[i + 1] - 1  
-                    
-                    wezel_poczatkowy = przetransformowane_wezly[id_poczatkowy]
-                    wezel_koncowy = przetransformowane_wezly[id_koncowy]
 
-                    punkt_pocz = camera.rzutowanie(wezel_poczatkowy)
-                    punkt_kon = camera.rzutowanie(wezel_koncowy)
-
-                    if punkt_pocz and punkt_kon:
-                        pygame.draw.line(screen, (0, 0, 0), punkt_pocz, punkt_kon, 2)
-                '''
-                punkty_na_ekranie = []
-                czy_rysowac = True
+                na_ekranie = []
+                rysowac = True
                 
                 for id_wezla in sciana:
-                    wezel = przetransformowane_wezly[id_wezla - 1]
-                    rzut = camera.rzutowanie(wezel)
-                    if rzut:
-                        punkty_na_ekranie.append(rzut)
+
+                    rzutowany_wezel = camera.rzutowanie(przetransformowane_wezly[id_wezla - 1])
+                    
+                    if rzutowany_wezel:
+                        na_ekranie.append(rzutowany_wezel)
                     else:
-                        czy_rysowac = False
+                        rysowac = False
                         break
                         
-                if czy_rysowac and len(punkty_na_ekranie) >= 3:
+                if rysowac:
 
                     if obiekt.color: 
                         kolor = obiekt.color
                     else:
                         kolor = (255, 255, 255)
-                        
-                    pygame.draw.polygon(screen, kolor, punkty_na_ekranie)
-                    pygame.draw.polygon(screen, (0, 0, 0), punkty_na_ekranie, 2)
+
+                    pygame.draw.polygon(screen, kolor, na_ekranie)
+                    pygame.draw.polygon(screen, (0, 0, 0), na_ekranie, 2)
 
         pygame.display.flip()
 
