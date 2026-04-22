@@ -1,149 +1,13 @@
 import pygame
 import numpy as np
 import sys
-import os 
 
-from funkcje import podziel_na_trojkaty
+from camera import Camera
+from wczytywanie import wczytaj_obiekty
 
 szerokosc = 1200 
 wysokosc = 700
 
-class Obiekt:
-    def __init__(self, name):
-        self.name = name
-        self.color = []
-        self.wezly = []
-        self.krawedzie = []
-
-    def dodaj_wezel(self, wezel):
-        self.wezly.append(wezel)
-
-    def dodaj_krawedz(self, krawedz):
-        self.krawedzie.append(krawedz)
-
-class Scena: 
-    def __init__(self):
-        self.obiekty = []
-    
-    def dodaj_obiekt(self, obiekt):
-        self.obiekty.append(obiekt)
-
-class Camera:
-    def __init__(self):
-
-        self.pozycja = np.array([0.0, 0.0, 0.0, 1.0])
-
-        # góra / dół
-        self.pochylenie = 0 
-
-        # lewo / prawo
-        self.obrot = 0 
-
-
-        # przechylenie na boki 
-        self.przechylenie = 0   
-
-        self.f = 600
-
-    def macierz_widoku(self):
-
-        # macierz translacji 
-        t_mat = np.array([
-            [1, 0, 0, -self.pozycja[0]],
-            [0, 1, 0, -self.pozycja[1]],
-            [0, 0, 1, -self.pozycja[2]],
-            [0, 0, 0, 1]])
-
-        # macierze rotacji  
-        r_pochylenie = np.array([
-            [1, 0, 0, 0],
-            [0, np.cos(self.pochylenie), -np.sin(self.pochylenie), 0],
-            [0, np.sin(self.pochylenie), np.cos(self.pochylenie), 0],  
-            [0, 0, 0, 1]])
-
-        r_przechylenie = np.array([
-            [np.cos(self.przechylenie), -np.sin(self.przechylenie), 0, 0],
-            [np.sin(self.przechylenie), np.cos(self.przechylenie), 0, 0], 
-            [0, 0, 1, 0],
-            [0, 0, 0, 1]])
-
-        r_obrot = np.array([
-            [np.cos(self.obrot), 0, np.sin(self.obrot), 0],
-            [0, 1, 0, 0],
-            [-np.sin(self.obrot), 0, np.cos(self.obrot), 0],
-            [0, 0, 0, 1]])
-        # macierz widoku
-        macierz_w = r_przechylenie @ r_pochylenie @ r_obrot @ t_mat
-
-        return macierz_w
-
-    def rzutowanie(self, punkt):
-
-        x = punkt[0]
-        y = punkt[1]
-        z = punkt[2]
-        
-        if z <= 0.1:
-            return None 
-        
-        x_2d = (x * self.f) / z + szerokosc / 2
-        y_2d = (-y * self.f) / z + wysokosc / 2
-        
-        return int(x_2d), int(y_2d)
-
-def wczytaj_obiekty(folder_path):
-
-    scena = Scena()
-
-    try:
-        for file in os.listdir(folder_path):
-
-            filepath = os.path.join(folder_path, file)
-            if not filepath.endswith(".txt"):
-                continue
-
-            with open(filepath, 'r') as f:
-                obiekt = Obiekt(file)
-
-                for line in f:
-                    parts = line.split()
-                
-                    if not parts:
-                        continue
-
-                    if parts[0] == 'w':
-                        obiekt.dodaj_wezel([float(parts[1]), float(parts[2]), float(parts[3]), 1.0])
-
-                    elif parts[0] == 'k':
-                        krawedz = []
-                        for i in range(1, len(parts)):
-                            krawedz.append(int(parts[i]))
-                        obiekt.dodaj_krawedz(krawedz)
-
-                    elif parts[0] == 'c':
-                        obiekt.color = (int(parts[1]), int(parts[2]), int(parts[3]))
-
-                if obiekt.wezly:
-                    obiekt.wezly = np.array(obiekt.wezly)
-
-                    # Nowe =======================================
-
-                    podziel_na_trojkaty(obiekt, poziom_subdivizji=2)
-
-                    print(obiekt.name)
-                    print()
-                    print("wezly: ", obiekt.wezly)
-                    print()
-                    print("krawedzie: ", obiekt.krawedzie)
-
-                    # Koniec =======================================
-
-                    scena.dodaj_obiekt(obiekt)
-        return scena
-
-    except FileNotFoundError:
-        print("Brak folderu!")
-        return Scena()
 
 def main():
 
@@ -229,38 +93,60 @@ def main():
         macierz_widoku = camera.macierz_widoku() 
 
 
+        # --- Algorytm malarza ---
+        # 1. Zbieramy obiekty wraz z ich odległością od kamery
+        obiekty_do_narysowania = []
+
         for obiekt in scena.obiekty:
             przetransformowane_wezly = []
+            odleglosci_wezlow = []
+            
             for w in obiekt.wezly:
-
                 wezel = macierz_widoku @ w
-
                 przetransformowane_wezly.append(wezel)
+                # Obliczamy rzeczywistą odległość węzła od kamery w przestrzeni 3D
+                odleglosc_wezla = np.linalg.norm(wezel[:3])
+                odleglosci_wezlow.append(odleglosc_wezla)
 
+            # Odległość obiektu = odległość do jego najbliższego węzła
+            odleglosc_obiektu = min(odleglosci_wezlow) if odleglosci_wezlow else float('inf')
+
+            sciany_obiektu = []
             for sciana in obiekt.krawedzie:
-
                 rysowac = True
                 na_ekranie = []
+                glebokosci_sciany = []
                 
                 for id_wezla in sciana:
-
-                    rzutowany_wezel = camera.rzutowanie(przetransformowane_wezly[id_wezla - 1])
+                    wezel_3d = przetransformowane_wezly[id_wezla - 1]
+                    rzutowany_wezel = camera.rzutowanie(wezel_3d, szerokosc, wysokosc)
                     
                     if rzutowany_wezel:
                         na_ekranie.append(rzutowany_wezel)
+                        glebokosci_sciany.append(np.linalg.norm(wezel_3d[:3]))
                     else:
                         rysowac = False
                         break
                         
                 if rysowac:
+                    kolor = obiekt.color if obiekt.color else (255, 255, 255)
+                    # Głębokość ściany to średnia odległość jej węzłów 
+                    # Średnia (lub max) zapobiega rysowaniu bocznych ścian na przednich!
+                    glebokosc_sciany = sum(glebokosci_sciany) / len(glebokosci_sciany)
+                    sciany_obiektu.append((glebokosc_sciany, na_ekranie, kolor))
 
-                    if obiekt.color: 
-                        kolor = obiekt.color
-                    else:
-                        kolor = (255, 255, 255)
+            # 2. Sortujemy ściany wewnątrz obiektu od najdalszej do najbliższej
+            sciany_obiektu.sort(key=lambda s: s[0], reverse=True)
+            obiekty_do_narysowania.append((odleglosc_obiektu, sciany_obiektu))
 
-                    pygame.draw.polygon(screen, kolor, na_ekranie)
-                    pygame.draw.polygon(screen, (0, 0, 0), na_ekranie, 2)
+        # 3. Sortujemy obiekty od najdalszego do najbliższego
+        obiekty_do_narysowania.sort(key=lambda o: o[0], reverse=True)
+
+        # 4. Rysujemy w posortowanej kolejności
+        for odleglosc_obiektu, sciany_obiektu in obiekty_do_narysowania:
+            for glebokosc_sciany, na_ekranie, kolor in sciany_obiektu:
+                pygame.draw.polygon(screen, kolor, na_ekranie)
+                pygame.draw.polygon(screen, (0, 0, 0), na_ekranie, 2)
 
         pygame.display.flip()
 
