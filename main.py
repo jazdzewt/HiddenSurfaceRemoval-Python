@@ -109,7 +109,10 @@ def main():
                 odleglosci_wezlow.append(odleglosc_wezla)
 
             # Odległość obiektu = odległość do jego najbliższego węzła
-            odleglosc_obiektu = min(odleglosci_wezlow) if odleglosci_wezlow else float('inf')
+            if odleglosci_wezlow:
+                odleglosc_obiektu = min(odleglosci_wezlow)
+            else:
+                odleglosc_obiektu = None
 
             sciany_obiektu = []
             for sciana in obiekt.krawedzie:
@@ -129,7 +132,10 @@ def main():
                         break
                         
                 if rysowac:
-                    kolor = obiekt.color if obiekt.color else (255, 255, 255)
+                    if obiekt.color: 
+                        kolor = obiekt.color
+                    else: 
+                        kolor = (255, 255, 255)
                     # Głębokość ściany to średnia odległość jej węzłów 
                     # Średnia (lub max) zapobiega rysowaniu bocznych ścian na przednich!
                     glebokosc_sciany = sum(glebokosci_sciany) / len(glebokosci_sciany)

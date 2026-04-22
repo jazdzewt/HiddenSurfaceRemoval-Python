@@ -1,53 +1,50 @@
 import numpy as np
 
-def podziel_liste_trojkatow(wezly, trojkaty):
-    nowe_trojkaty = []
-    for a, b, c in trojkaty:
-        p_a, p_b, p_c = np.array(wezly[a]), np.array(wezly[b]), np.array(wezly[c])
-        
-        # Środki trzech krawędzi
-        m_ab = ((p_a + p_b) / 2.0).tolist()
-        m_bc = ((p_b + p_c) / 2.0).tolist()
-        m_ca = ((p_c + p_a) / 2.0).tolist()
-        
-        idx_ab = len(wezly)
-        wezly.append(m_ab)
-        
-        idx_bc = len(wezly)
-        wezly.append(m_bc)
-        
-        idx_ca = len(wezly)
-        wezly.append(m_ca)
-        
-        # Z jednego trójkąta robimy 4 mniejsze
-        nowe_trojkaty.extend([
-            [a, idx_ab, idx_ca],
-            [b, idx_bc, idx_ab],
-            [c, idx_ca, idx_bc],
-            [idx_ab, idx_bc, idx_ca]
-        ])
-    return nowe_trojkaty
+def podziel_liste(wezly, sciany):
+    nowe_sciany = []
 
+    for a, b, c in sciany:
+        wezel_A = wezly[a]
+        wezel_B = wezly[b]
+        wezel_C = wezly[c]
+
+        wezel_AB = [(wezel_A[0] + wezel_B[0]) / 2, (wezel_A[1] + wezel_B[1]) / 2, (wezel_A[2] + wezel_B[2]) / 2, 1.0]
+        wezel_BC = [(wezel_B[0] + wezel_C[0]) / 2, (wezel_B[1] + wezel_C[1]) / 2, (wezel_B[2] + wezel_C[2]) / 2, 1.0]
+        wezel_CA = [(wezel_C[0] + wezel_A[0]) / 2, (wezel_C[1] + wezel_A[1]) / 2, (wezel_C[2] + wezel_A[2]) / 2, 1.0]
+
+        index_AB = len(wezly)
+        wezly.append(wezel_AB)
+
+        index_BC = len(wezly)
+        wezly.append(wezel_BC)
+
+        index_CA = len(wezly)
+        wezly.append(wezel_CA)
+
+        nowe_sciany.append([a, index_AB, index_CA])
+        nowe_sciany.append([b, index_BC, index_AB])
+        nowe_sciany.append([c, index_CA, index_BC])
+        nowe_sciany.append([index_AB, index_BC, index_CA])
+
+        #print("nowe_sciany", nowe_sciany)
+
+    return nowe_sciany
 
 def podziel(obiekt):
     wezly = obiekt.wezly.tolist()
     sciany = []
 
-    # 1. Wstępne dzielenie ścian wielokątnych na trójkąty (wachlarz)
+    #print("wezly", wezly)
+
     for s in obiekt.krawedzie:
         wierzcholki = [i - 1 for i in s[:-1]]
-        print("wierzcholki", wierzcholki)
-        print("s", s)
-        for j in range(0, len(wierzcholki)-1):
+
+        for j in range(1, len(wierzcholki) - 1):
             sciany.append([wierzcholki[0], wierzcholki[j], wierzcholki[j+1]])
-            print([wierzcholki[0], wierzcholki[j-1], wierzcholki[j]])
-            print("sciana", sciany)
-# Poziom 1 (z 1 trójkąta robią się 4)
-    sciany = podziel_liste_trojkatow(wezly, sciany)
-    
-    # Poziom 2 (z 4 trójkątów robi się 16)
-    sciany = podziel_liste_trojkatow(wezly, sciany)
+
+    #print("sciany", sciany)
+    sciany = podziel_liste(wezly, sciany)
+    sciany = podziel_liste(wezly, sciany)
 
     obiekt.wezly = np.array(wezly)
-    # 3. Powrót na indeksowanie 1-based
     obiekt.krawedzie = [[a + 1, b + 1, c + 1] for a, b, c in sciany]
