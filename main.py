@@ -3,11 +3,14 @@ import numpy as np
 import sys
 import os 
 
+from funkcje import podziel_na_trojkaty
+
 szerokosc = 1200 
 wysokosc = 700
 
 class Obiekt:
-    def __init__(self):
+    def __init__(self, name):
+        self.name = name
         self.color = []
         self.wezly = []
         self.krawedzie = []
@@ -100,7 +103,7 @@ def wczytaj_obiekty(folder_path):
                 continue
 
             with open(filepath, 'r') as f:
-                obiekt = Obiekt()
+                obiekt = Obiekt(file)
 
                 for line in f:
                     parts = line.split()
@@ -122,6 +125,19 @@ def wczytaj_obiekty(folder_path):
 
                 if obiekt.wezly:
                     obiekt.wezly = np.array(obiekt.wezly)
+
+                    # Nowe =======================================
+
+                    podziel_na_trojkaty(obiekt, poziom_subdivizji=2)
+
+                    print(obiekt.name)
+                    print()
+                    print("wezly: ", obiekt.wezly)
+                    print()
+                    print("krawedzie: ", obiekt.krawedzie)
+
+                    # Koniec =======================================
+
                     scena.dodaj_obiekt(obiekt)
         return scena
 
@@ -223,8 +239,8 @@ def main():
 
             for sciana in obiekt.krawedzie:
 
-                na_ekranie = []
                 rysowac = True
+                na_ekranie = []
                 
                 for id_wezla in sciana:
 
