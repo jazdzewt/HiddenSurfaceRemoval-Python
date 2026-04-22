@@ -1,6 +1,6 @@
 import numpy as np
 
-def podziel_liste(wezly, sciany):
+def podziel_sciany(wezly, sciany):
     nowe_sciany = []
 
     for a, b, c in sciany:
@@ -43,8 +43,8 @@ def podziel(obiekt):
             sciany.append([wierzcholki[0], wierzcholki[j], wierzcholki[j+1]])
 
     #print("sciany", sciany)
-    sciany = podziel_liste(wezly, sciany)
-    sciany = podziel_liste(wezly, sciany)
+    sciany = podziel_sciany(wezly, sciany)
+    sciany = podziel_sciany(wezly, sciany)
 
     obiekt.wezly = np.array(wezly)
     obiekt.krawedzie = [[a + 1, b + 1, c + 1] for a, b, c in sciany]
