@@ -1,49 +1,53 @@
 import numpy as np
 
-def podziel_na_trojkaty(obiekt, poziom_subdivizji=1):
+def podziel_liste_trojkatow(wezly, trojkaty):
+    nowe_trojkaty = []
+    for a, b, c in trojkaty:
+        p_a, p_b, p_c = np.array(wezly[a]), np.array(wezly[b]), np.array(wezly[c])
+        
+        # Środki trzech krawędzi
+        m_ab = ((p_a + p_b) / 2.0).tolist()
+        m_bc = ((p_b + p_c) / 2.0).tolist()
+        m_ca = ((p_c + p_a) / 2.0).tolist()
+        
+        idx_ab = len(wezly)
+        wezly.append(m_ab)
+        
+        idx_bc = len(wezly)
+        wezly.append(m_bc)
+        
+        idx_ca = len(wezly)
+        wezly.append(m_ca)
+        
+        # Z jednego trójkąta robimy 4 mniejsze
+        nowe_trojkaty.extend([
+            [a, idx_ab, idx_ca],
+            [b, idx_bc, idx_ab],
+            [c, idx_ca, idx_bc],
+            [idx_ab, idx_bc, idx_ca]
+        ])
+    return nowe_trojkaty
 
-    wezly = [list(w) for w in obiekt.wezly]
-    nowe_sciany = []
 
-    def podziel_trojkat(a, b, c, poziom):
-        if poziom == 0:
-            nowe_sciany.append([a + 1, b + 1, c + 1])
-            return
-            
-        p_a = np.array(wezly[a])
-        p_b = np.array(wezly[b])
-        p_c = np.array(wezly[c])
-        
-        # Oblicz środki trzech krawędzi
-        m_ab = (p_a + p_b) / 2.0
-        m_bc = (p_b + p_c) / 2.0
-        m_ca = (p_c + p_a) / 2.0
-        
-        # Dodaj nowe węzły do listy węzłów
-        wezly.append([m_ab[0], m_ab[1], m_ab[2], 1.0])
-        idx_ab = len(wezly) - 1
-        
-        wezly.append([m_bc[0], m_bc[1], m_bc[2], 1.0])
-        idx_bc = len(wezly) - 1
-        
-        wezly.append([m_ca[0], m_ca[1], m_ca[2], 1.0])
-        idx_ca = len(wezly) - 1
-        
-        # Rekurencyjny podział na 4 mniejsze trójkąty
-        podziel_trojkat(a, idx_ab, idx_ca, poziom - 1)
-        podziel_trojkat(b, idx_bc, idx_ab, poziom - 1)
-        podziel_trojkat(c, idx_ca, idx_bc, poziom - 1)
-        podziel_trojkat(idx_ab, idx_bc, idx_ca, poziom - 1)
+def podziel(obiekt):
+    wezly = obiekt.wezly.tolist()
+    sciany = []
 
-    for sciana in obiekt.krawedzie:
-        # Pozbądź się powielonego ostatniego węzła (jeśli ściana jest zamknięta)
-        zamknieta = len(sciana) > 1 and sciana[0] == sciana[-1]
-        unikalne = sciana[:-1] if zamknieta else sciana
-        aktualna_sciana = [i - 1 for i in unikalne] # Na indeksowanie 0-based
-        
-        # Triangulacja wielokąta w wachlarz trójkątów
-        for j in range(1, len(aktualna_sciana) - 1):
-            podziel_trojkat(aktualna_sciana[0], aktualna_sciana[j], aktualna_sciana[j+1], poziom_subdivizji)
+    # 1. Wstępne dzielenie ścian wielokątnych na trójkąty (wachlarz)
+    for s in obiekt.krawedzie:
+        wierzcholki = [i - 1 for i in s[:-1]]
+        print("wierzcholki", wierzcholki)
+        print("s", s)
+        for j in range(0, len(wierzcholki)-1):
+            sciany.append([wierzcholki[0], wierzcholki[j], wierzcholki[j+1]])
+            print([wierzcholki[0], wierzcholki[j-1], wierzcholki[j]])
+            print("sciana", sciany)
+# Poziom 1 (z 1 trójkąta robią się 4)
+    sciany = podziel_liste_trojkatow(wezly, sciany)
+    
+    # Poziom 2 (z 4 trójkątów robi się 16)
+    sciany = podziel_liste_trojkatow(wezly, sciany)
 
     obiekt.wezly = np.array(wezly)
-    obiekt.krawedzie = nowe_sciany
+    # 3. Powrót na indeksowanie 1-based
+    obiekt.krawedzie = [[a + 1, b + 1, c + 1] for a, b, c in sciany]

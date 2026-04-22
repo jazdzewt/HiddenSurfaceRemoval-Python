@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-from dzielenie import podziel_na_trojkaty
+from dzielenie import podziel
 from obiekt import Obiekt, Scena
 
 
@@ -42,13 +42,13 @@ def wczytaj_obiekty(folder_path):
 
                     # Nowe =======================================
 
-                    podziel_na_trojkaty(obiekt, poziom_subdivizji=2)
+                    podziel(obiekt)
 
-                    print(obiekt.name)
-                    print()
-                    print("wezly: ", obiekt.wezly)
-                    print()
-                    print("krawedzie: ", obiekt.krawedzie)
+                    #print(obiekt.name)
+                    #print()
+                    #print("wezly: ", obiekt.wezly)
+                    #print()
+                    #print("krawedzie: ", obiekt.krawedzie)
 
                     # Koniec =======================================
 
