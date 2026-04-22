@@ -93,66 +93,49 @@ def main():
         macierz_widoku = camera.macierz_widoku() 
 
 
-        # --- Algorytm malarza ---
-        # 1. Zbieramy obiekty wraz z ich odległością od kamery
-        obiekty_do_narysowania = []
+        sciany_renderowanie = []
 
         for obiekt in scena.obiekty:
             przetransformowane_wezly = []
-            odleglosci_wezlow = []
             
             for w in obiekt.wezly:
+
                 wezel = macierz_widoku @ w
                 przetransformowane_wezly.append(wezel)
-                # Obliczamy rzeczywistą odległość węzła od kamery w przestrzeni 3D
-                odleglosc_wezla = np.linalg.norm(wezel[:3])
-                odleglosci_wezlow.append(odleglosc_wezla)
 
-            # Odległość obiektu = odległość do jego najbliższego węzła
-            if odleglosci_wezlow:
-                odleglosc_obiektu = min(odleglosci_wezlow)
-            else:
-                odleglosc_obiektu = None
-
-            sciany_obiektu = []
             for sciana in obiekt.krawedzie:
+
                 rysowac = True
-                na_ekranie = []
-                glebokosci_sciany = []
+
+                wezly_na_ekranie = []
+                glebokosci_wezlow = []
                 
                 for id_wezla in sciana:
                     wezel_3d = przetransformowane_wezly[id_wezla - 1]
                     rzutowany_wezel = camera.rzutowanie(wezel_3d, szerokosc, wysokosc)
                     
                     if rzutowany_wezel:
-                        na_ekranie.append(rzutowany_wezel)
-                        glebokosci_sciany.append(np.linalg.norm(wezel_3d[:3]))
+                        wezly_na_ekranie.append(rzutowany_wezel)
+                        glebokosci_wezlow.append(np.linalg.norm(wezel_3d[:3]))
                     else:
                         rysowac = False
                         break
                         
                 if rysowac:
-                    if obiekt.color: 
-                        kolor = obiekt.color
-                    else: 
-                        kolor = (255, 255, 255)
-                    # Głębokość ściany to średnia odległość jej węzłów 
-                    # Średnia (lub max) zapobiega rysowaniu bocznych ścian na przednich!
-                    glebokosc_sciany = sum(glebokosci_sciany) / len(glebokosci_sciany)
-                    sciany_obiektu.append((glebokosc_sciany, na_ekranie, kolor))
 
-            # 2. Sortujemy ściany wewnątrz obiektu od najdalszej do najbliższej
-            sciany_obiektu.sort(key=lambda s: s[0], reverse=True)
-            obiekty_do_narysowania.append((odleglosc_obiektu, sciany_obiektu))
+                    kolor = obiekt.color
 
-        # 3. Sortujemy obiekty od najdalszego do najbliższego
-        obiekty_do_narysowania.sort(key=lambda o: o[0], reverse=True)
+                    #print("glebokosci_wezlow: ", glebokosci_wezlow)
+                    glebokosc_sciany = sum(glebokosci_wezlow) / len(glebokosci_wezlow)
 
-        # 4. Rysujemy w posortowanej kolejności
-        for odleglosc_obiektu, sciany_obiektu in obiekty_do_narysowania:
-            for glebokosc_sciany, na_ekranie, kolor in sciany_obiektu:
-                pygame.draw.polygon(screen, kolor, na_ekranie)
-                pygame.draw.polygon(screen, (0, 0, 0), na_ekranie, 2)
+                    sciany_renderowanie.append((glebokosc_sciany, wezly_na_ekranie, kolor))
+
+        # sortowanie
+        sciany_renderowanie.sort(key=lambda s: s[0], reverse=True)
+
+        for glebokosc_sciany, wezly_na_ekranie, kolor in sciany_renderowanie:
+            pygame.draw.polygon(screen, kolor, wezly_na_ekranie)
+            pygame.draw.polygon(screen, (0, 0, 0), wezly_na_ekranie, 2)
 
         pygame.display.flip()
 
