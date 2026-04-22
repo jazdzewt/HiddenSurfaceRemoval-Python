@@ -1,49 +1,49 @@
 import numpy as np
 
-def dodaj_wezly_do_scian(obiekt, poziom_subdivizji=1):
-    """
-    Zagęszcza siatkę dodając nowe węzły na środkach krawędzi, 
-    bez tworzenia nowych ścian.
-    """
-    if poziom_subdivizji <= 0:
-        return
-        
+def podziel_na_trojkaty(obiekt, poziom_subdivizji=1):
+
     wezly = [list(w) for w in obiekt.wezly]
     nowe_sciany = []
 
+    def podziel_trojkat(a, b, c, poziom):
+        if poziom == 0:
+            nowe_sciany.append([a + 1, b + 1, c + 1])
+            return
+            
+        p_a = np.array(wezly[a])
+        p_b = np.array(wezly[b])
+        p_c = np.array(wezly[c])
+        
+        # Oblicz środki trzech krawędzi
+        m_ab = (p_a + p_b) / 2.0
+        m_bc = (p_b + p_c) / 2.0
+        m_ca = (p_c + p_a) / 2.0
+        
+        # Dodaj nowe węzły do listy węzłów
+        wezly.append([m_ab[0], m_ab[1], m_ab[2], 1.0])
+        idx_ab = len(wezly) - 1
+        
+        wezly.append([m_bc[0], m_bc[1], m_bc[2], 1.0])
+        idx_bc = len(wezly) - 1
+        
+        wezly.append([m_ca[0], m_ca[1], m_ca[2], 1.0])
+        idx_ca = len(wezly) - 1
+        
+        # Rekurencyjny podział na 4 mniejsze trójkąty
+        podziel_trojkat(a, idx_ab, idx_ca, poziom - 1)
+        podziel_trojkat(b, idx_bc, idx_ab, poziom - 1)
+        podziel_trojkat(c, idx_ca, idx_bc, poziom - 1)
+        podziel_trojkat(idx_ab, idx_bc, idx_ca, poziom - 1)
+
     for sciana in obiekt.krawedzie:
+        # Pozbądź się powielonego ostatniego węzła (jeśli ściana jest zamknięta)
         zamknieta = len(sciana) > 1 and sciana[0] == sciana[-1]
         unikalne = sciana[:-1] if zamknieta else sciana
-        aktualna_sciana = [i - 1 for i in unikalne] # przejście na indeksy 0-based
+        aktualna_sciana = [i - 1 for i in unikalne] # Na indeksowanie 0-based
         
-        for _ in range(poziom_subdivizji):
-            nowa_sciana = []
-            liczba_w = len(aktualna_sciana)
-            for i in range(liczba_w):
-                idx_a = aktualna_sciana[i]
-                idx_b = aktualna_sciana[(i + 1) % liczba_w] 
-                
-                # 1. Dodaj obecny węzeł
-                nowa_sciana.append(idx_a)
-                
-                # 2. Oblicz środek krawędzi i dodaj do wezly
-                p_a = np.array(wezly[idx_a])
-                p_b = np.array(wezly[idx_b])
-                srodek = (p_a + p_b) / 2.0
-                
-                wezly.append([srodek[0], srodek[1], srodek[2], 1.0])
-                idx_srodka = len(wezly) - 1
-                
-                # 3. Dodaj srodek do nowej sciany
-                nowa_sciana.append(idx_srodka)
-                
-            aktualna_sciana = nowa_sciana
-            
-        nowa_sciana_1based = [i + 1 for i in aktualna_sciana]
-        if zamknieta:
-             nowa_sciana_1based.append(nowa_sciana_1based[0])
-             
-        nowe_sciany.append(nowa_sciana_1based)
+        # Triangulacja wielokąta w wachlarz trójkątów
+        for j in range(1, len(aktualna_sciana) - 1):
+            podziel_trojkat(aktualna_sciana[0], aktualna_sciana[j], aktualna_sciana[j+1], poziom_subdivizji)
 
     obiekt.wezly = np.array(wezly)
     obiekt.krawedzie = nowe_sciany

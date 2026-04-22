@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-from dzielenie import dodaj_wezly_do_scian
+from dzielenie import podziel_na_trojkaty
 from obiekt import Obiekt, Scena
 
 
@@ -42,7 +42,7 @@ def wczytaj_obiekty(folder_path):
 
                     # Nowe =======================================
 
-                    dodaj_wezly_do_scian(obiekt, poziom_subdivizji=2)
+                    podziel_na_trojkaty(obiekt, poziom_subdivizji=2)
 
                     print(obiekt.name)
                     print()
