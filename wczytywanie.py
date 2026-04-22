@@ -40,8 +40,6 @@ def wczytaj_obiekty(folder_path):
                 if obiekt.wezly:
                     obiekt.wezly = np.array(obiekt.wezly)
 
-                    # Nowe =======================================
-
                     podziel(obiekt)
 
                     #print(obiekt.name)
@@ -49,8 +47,6 @@ def wczytaj_obiekty(folder_path):
                     #print("wezly: ", obiekt.wezly)
                     #print()
                     #print("krawedzie: ", obiekt.krawedzie)
-
-                    # Koniec =======================================
 
                     scena.dodaj_obiekt(obiekt)
         return scena
