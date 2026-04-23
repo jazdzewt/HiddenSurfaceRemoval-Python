@@ -1,83 +1,106 @@
 import numpy as np
-from functools import cmp_to_key
 
-import numpy as np
+def get_plane_eq(poly):
+    """Zwraca [A, B, C, D] dla Ax + By + Cz + D = 0."""
+    p0, p1, p2 = poly[0][:3], poly[1][:3], poly[2][:3]
+    n = np.cross(p1 - p0, p2 - p0)
+    # Zabezpieczenie przed kolinearnością
+    if np.linalg.norm(n) < 1e-9:
+        n = np.cross(poly[1][:3] - poly[0][:3], poly[-1][:3] - poly[0][:3])
+    d = -np.dot(n, p0)
+    return n, d
 
-import numpy as np
+def get_aabb(poly):
+    """Otoczenie prostokątne w X i Y."""
+    pts = np.array([v[:3] for v in poly])
+    return np.min(pts[:, 0]), np.max(pts[:, 0]), np.min(pts[:, 1]), np.max(pts[:, 1])
 
-def get_plane_equation(poly):
-    """
-    poly: lista array([-4., -1., 5., 1.])
-    Zwraca: A, B, C, D
-    """
-    # Wyciągamy współrzędne x, y, z dla trzech punktów
-    p0 = poly[0][:3]
-    p1 = poly[1][:3]
-    p2 = poly[2][:3]
-    
-    # Wektory pomocnicze
-    v1 = p1 - p0
-    v2 = p2 - p0
-    
-    # Iloczyn wektorowy daje wektor normalny [A, B, C]
-    normal = np.cross(v1, v2)
-    A, B, C = normal
-    
-    # D = -(A*x + B*y + C*z)
-    D = -np.dot(normal, p0)
-    
-    return A, B, C, D
+def is_behind(poly_p, n_q, d_q):
+    """Test: Czy wielokąt P leży ZA płaszczyzną Q względem oka (0,0,0)."""
+    eye_val = d_q 
+    eye_sign = np.sign(eye_val)
+    eps = 1e-5
+    for v in poly_p:
+        val = np.dot(n_q, v[:3]) + d_q
+        # Jeśli punkt ma ten sam znak co oko, jest PRZED płaszczyzną
+        if np.sign(val) == eye_sign and abs(val) > eps:
+            return False
+    return True
 
-import numpy as np
-
-def relacja_scian(sciana_A, sciana_B):
-    poly_a, poly_b = sciana_A[0], sciana_B[0]
-    
-    # 1. Test Min-Max Z (Najszybszy i najpewniejszy)
-    z_min_a, z_max_a = min(v[2] for v in poly_a), max(v[2] for v in poly_a)
-    z_min_b, z_max_b = min(v[2] for v in poly_b), max(v[2] for v in poly_b)
-    
-    # Jeśli zakresy Z w ogóle się nie nakładają, nie ma co liczyć płaszczyzn
-    if z_max_a <= z_min_b: return -1 # A jest całkowicie za B
-    if z_min_a >= z_max_b: return 1  # A jest całkowicie przed B
-
-    # 2. Test płaszczyzny (z większą tolerancją - epsilon)
-    a, b, c, d = get_plane_equation(poly_b)
-    znak_oka = np.sign(d)
-    epsilon = 1e-4 # Tolerancja dla krawędzi
-    
-    za = True
-    for p in poly_a:
-        val = a*p[0] + b*p[1] + c*p[2] + d
-        # Sprawdzamy czy punkt jest po stronie oka
-        if np.sign(val) == znak_oka and abs(val) > epsilon:
-            za = False
-            break
-    
-    if za: return -1
-    
-    # 3. Test odwrotny
-    a2, b2, c2, d2 = get_plane_equation(poly_a)
-    znak_oka2 = np.sign(d2)
-    
-    przed = True
-    for p in poly_b:
-        val = a2*p[0] + b2*p[1] + c2*p[2] + d2
-        if np.sign(val) != znak_oka2 and abs(val) > epsilon:
-            przed = False
-            break
-            
-    if przed: return -1
-
-    # 4. Jeśli nadal nie wiadomo (np. przecinają się), używamy środka ciężkości
-    return -1 if np.mean([v[2] for v in poly_a]) > np.mean([v[2] for v in poly_b]) else 1
+def is_in_front(poly_q, n_p, d_p):
+    """Test: Czy wielokąt Q leży PRZED płaszczyzną P względem oka (0,0,0)."""
+    eye_val = d_p
+    eye_sign = np.sign(eye_val)
+    eps = 1e-5
+    for v in poly_q:
+        val = np.dot(n_p, v[:3]) + d_p
+        # Jeśli punkt ma inny znak niż oko, jest ZA płaszczyzną
+        if np.sign(val) != eye_sign and abs(val) > eps:
+            return False
+    return True
 
 def sortuj_sciany(sciany):
-    """
-    Sortowanie 'malarskie' - od najdalszych do najbliższych.
-    Używamy Z_max jako głównego kryterium (tak jak w Twoim 1. rozwiązaniu),
-    ale dodajemy Z_mean dla stabilności.
-    """
+    # Wstępne sortowanie po Z_max (Najdalsze na początek listy)
+    # Przyjmujemy: większe Z = dalej
+    S = sorted(sciany, key=lambda w: max(v[2] for v in w[0]), reverse=True)
+    
+    i = 0
+    while i < len(S):
+        P = S[i] # Wielokąt potencjalnie dalszy
+        z_min_p = min(v[2] for v in P[0])
+        
+        j = i + 1
+        konflikt_rozwiazany = True
+        
+        while j < len(S):
+            Q = S[j] # Wielokąt potencjalnie bliższy
+            
+            # Jeśli Q jest całkowicie bliżej niż P w osi Z, nie ma konfliktu
+            if max(v[2] for v in Q[0]) <= z_min_p:
+                j += 1
+                continue
+            
+            # --- TWOJE TESTY 1-4 ---
+            
+            # 1. Otoczenia prostokątne X, Y
+            min_xp, max_xp, min_yp, max_yp = get_aabb(P[0])
+            min_xq, max_xq, min_yq, max_yq = get_aabb(Q[0])
+            
+            if (max_xp <= min_xq or max_xq <= min_xp or 
+                max_yp <= min_yq or max_yq <= min_yp):
+                j += 1
+                continue
 
-    # Sortujemy malejąco: od największego Z (najdalej) do najmniejszego (najbliżej)
-    return sorted(sciany, key=cmp_to_key(relacja_scian))
+            # 2. Rzuty (pomińmy dla wydajności, AABB zazwyczaj wystarcza dla prostych brył)
+
+            # 3. P za płaszczyzną Q
+            nq, dq = get_plane_eq(Q[0])
+            if is_behind(P[0], nq, dq):
+                j += 1
+                continue
+                
+            # 4. Q przed płaszczyzną P
+            np_eq, dp_eq = get_plane_eq(P[0])
+            if is_in_front(Q[0], np_eq, dp_eq):
+                j += 1
+                continue
+
+            # --- KROK 5: Zamiana ról ---
+            # Jeśli żaden test nie przeszedł, sprawdzamy czy Q zasłania P
+            # Testujemy czy Q jest ZA płaszczyzną P LUB P jest PRZED płaszczyzną Q
+            if is_behind(Q[0], np_eq, dp_eq) or is_in_front(P[0], nq, dq):
+                # Q jest w rzeczywistości dalej niż P - przesuń Q na miejsce i
+                temp_q = S.pop(j)
+                S.insert(i, temp_q)
+                konflikt_rozwiazany = False
+                break
+            else:
+                # KROK 6: Podział (Polygon Splitting)
+                # W Twoim przypadku (brak przenikania) nie powinno się to dziać.
+                # Używamy Z_mean jako ostatecznego ratunku.
+                j += 1
+        
+        if konflikt_rozwiazany:
+            i += 1
+            
+    return S
