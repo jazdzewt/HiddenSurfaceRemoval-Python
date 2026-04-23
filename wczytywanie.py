@@ -40,7 +40,7 @@ def wczytaj_obiekty(folder_path):
                 if obiekt.wezly:
                     obiekt.wezly = np.array(obiekt.wezly)
 
-                    podziel(obiekt)
+                    #podziel(obiekt)
 
                     #print(obiekt.name)
                     #print()
