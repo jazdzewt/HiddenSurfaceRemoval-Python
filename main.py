@@ -126,7 +126,7 @@ def main():
                     kolor = obiekt.color
 
                     #print("glebokosci_wezlow: ", glebokosci_wezlow)
-                    glebokosc_sciany = sum(glebokosci_wezlow) / len(glebokosci_wezlow)
+                    glebokosc_sciany = max(glebokosci_wezlow)#sum(glebokosci_wezlow) / len(glebokosci_wezlow)
 
                     sciany_renderowanie.append((glebokosc_sciany, wezly_na_ekranie, kolor))
 
