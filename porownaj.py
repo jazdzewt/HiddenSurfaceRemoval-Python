@@ -1,106 +1,104 @@
 import numpy as np
 
-def get_plane_eq(poly):
-    """Zwraca [A, B, C, D] dla Ax + By + Cz + D = 0."""
-    p0, p1, p2 = poly[0][:3], poly[1][:3], poly[2][:3]
-    n = np.cross(p1 - p0, p2 - p0)
-    # Zabezpieczenie przed kolinearnością
-    if np.linalg.norm(n) < 1e-9:
-        n = np.cross(poly[1][:3] - poly[0][:3], poly[-1][:3] - poly[0][:3])
-    d = -np.dot(n, p0)
-    return n, d
+def wektor_normalny(poly):
+    """Zwraca normalną (n) i stałą (D). Normalna ZAWSZE patrzy w stronę kamery (0,0,0)."""
+    pts = [v[:3] for v in poly]
+    if len(pts) < 3: return None, 0
+    p0 = pts[0]
+    
+    for i in range(1, len(pts)-1):
+        n = np.cross(pts[i]-p0, pts[i+1]-p0)
+        dlugosc = np.linalg.norm(n)
+        if dlugosc > 1e-6:
+            n = n / dlugosc
+            # Odwracamy, jeśli wektor ucieka od kamery
+            if np.dot(n, p0) > 0: n = -n
+            return n, -np.dot(n, p0)
+            
+    return None, 0
 
-def get_aabb(poly):
-    """Otoczenie prostokątne w X i Y."""
-    pts = np.array([v[:3] for v in poly])
-    return np.min(pts[:, 0]), np.max(pts[:, 0]), np.min(pts[:, 1]), np.max(pts[:, 1])
+def czy_calkowicie_za(poly, n, D):
+    if n is None: return False
+    # Płaszczyzna dzieli świat. Wartości ujemne to przestrzeń "za" płaszczyzną od strony oka.
+    return all(np.dot(n, v[:3]) + D < 1e-4 for v in poly)
 
-def is_behind(poly_p, n_q, d_q):
-    """Test: Czy wielokąt P leży ZA płaszczyzną Q względem oka (0,0,0)."""
-    eye_val = d_q 
-    eye_sign = np.sign(eye_val)
-    eps = 1e-5
-    for v in poly_p:
-        val = np.dot(n_q, v[:3]) + d_q
-        # Jeśli punkt ma ten sam znak co oko, jest PRZED płaszczyzną
-        if np.sign(val) == eye_sign and abs(val) > eps:
-            return False
-    return True
-
-def is_in_front(poly_q, n_p, d_p):
-    """Test: Czy wielokąt Q leży PRZED płaszczyzną P względem oka (0,0,0)."""
-    eye_val = d_p
-    eye_sign = np.sign(eye_val)
-    eps = 1e-5
-    for v in poly_q:
-        val = np.dot(n_p, v[:3]) + d_p
-        # Jeśli punkt ma inny znak niż oko, jest ZA płaszczyzną
-        if np.sign(val) != eye_sign and abs(val) > eps:
-            return False
-    return True
+def czy_calkowicie_przed(poly, n, D):
+    if n is None: return False
+    # Wartości dodatnie to przestrzeń "przed" płaszczyzną, blisko oka.
+    return all(np.dot(n, v[:3]) + D > -1e-4 for v in poly)
 
 def sortuj_sciany(sciany):
-    # Wstępne sortowanie po Z_max (Najdalsze na początek listy)
-    # Przyjmujemy: większe Z = dalej
-    S = sorted(sciany, key=lambda w: max(v[2] for v in w[0]), reverse=True)
+    if not sciany: return []
+
+    # 1. Zgrubne sortowanie: od najdalszego punktu do najbliższego
+    def max_dist(face):
+        return max(np.linalg.norm(v[:3]) for v in face[0])
+        
+    S = sorted(sciany, key=max_dist, reverse=True)
     
+    # Słownik cofnięć zapobiegający nieskończonej pętli, gdy np. bryły utworzą pierścień
+    cofniecia = {id(f[0]): 0 for f in S}
+    limit_cofniec = len(S)
+
     i = 0
     while i < len(S):
-        P = S[i] # Wielokąt potencjalnie dalszy
-        z_min_p = min(v[2] for v in P[0])
+        P = S[i]
+        poly_p = P[0]
+        nP, DP = wektor_normalny(poly_p)
         
         j = i + 1
-        konflikt_rozwiazany = True
+        zmieniono_kolejnosc = False
         
         while j < len(S):
-            Q = S[j] # Wielokąt potencjalnie bliższy
+            Q = S[j]
+            poly_q = Q[0]
             
-            # Jeśli Q jest całkowicie bliżej niż P w osi Z, nie ma konfliktu
-            if max(v[2] for v in Q[0]) <= z_min_p:
-                j += 1
-                continue
+            # Test 1: Bounding Box 2D na ekranie
+            # Jeśli ściany nie zachodzą na siebie wizualnie na ekranie, ich kolejność nie ma znaczenia
+            def obwiednia_2d(poly):
+                x = [v[0]/(abs(v[2])+1e-6) for v in poly]
+                y = [v[1]/(abs(v[2])+1e-6) for v in poly]
+                return min(x), max(x), min(y), max(y)
+                
+            px0, px1, py0, py1 = obwiednia_2d(poly_p)
+            qx0, qx1, qy0, qy1 = obwiednia_2d(poly_q)
             
-            # --- TWOJE TESTY 1-4 ---
-            
-            # 1. Otoczenia prostokątne X, Y
-            min_xp, max_xp, min_yp, max_yp = get_aabb(P[0])
-            min_xq, max_xq, min_yq, max_yq = get_aabb(Q[0])
-            
-            if (max_xp <= min_xq or max_xq <= min_xp or 
-                max_yp <= min_yq or max_yq <= min_yp):
-                j += 1
-                continue
-
-            # 2. Rzuty (pomińmy dla wydajności, AABB zazwyczaj wystarcza dla prostych brył)
-
-            # 3. P za płaszczyzną Q
-            nq, dq = get_plane_eq(Q[0])
-            if is_behind(P[0], nq, dq):
+            if px1 < qx0 or qx1 < px0 or py1 < qy0 or qy1 < py0:
                 j += 1
                 continue
                 
-            # 4. Q przed płaszczyzną P
-            np_eq, dp_eq = get_plane_eq(P[0])
-            if is_in_front(Q[0], np_eq, dp_eq):
+            nQ, DQ = wektor_normalny(poly_q)
+            
+            # Test 2: P jest z tyłu za płaszczyzną Q -> Poprawnie
+            if czy_calkowicie_za(poly_p, nQ, DQ):
                 j += 1
                 continue
-
-            # --- KROK 5: Zamiana ról ---
-            # Jeśli żaden test nie przeszedł, sprawdzamy czy Q zasłania P
-            # Testujemy czy Q jest ZA płaszczyzną P LUB P jest PRZED płaszczyzną Q
-            if is_behind(Q[0], np_eq, dp_eq) or is_in_front(P[0], nq, dq):
-                # Q jest w rzeczywistości dalej niż P - przesuń Q na miejsce i
-                temp_q = S.pop(j)
-                S.insert(i, temp_q)
-                konflikt_rozwiazany = False
-                break
-            else:
-                # KROK 6: Podział (Polygon Splitting)
-                # W Twoim przypadku (brak przenikania) nie powinno się to dziać.
-                # Używamy Z_mean jako ostatecznego ratunku.
+                
+            # Test 3: Q jest z przodu przed płaszczyzną P -> Poprawnie
+            if czy_calkowicie_przed(poly_q, nP, DP):
                 j += 1
-        
-        if konflikt_rozwiazany:
+                continue
+                
+            # Wykryto konflikt perspektywy! Sprawdzamy odwrotne zasady.
+            # Jeśli Q leży z tyłu P, LUB P leży przed Q -> musimy przesunąć Q przed P w kolejce rysowania.
+            wymaga_korekty = False
+            if czy_calkowicie_za(poly_q, nP, DP): 
+                wymaga_korekty = True
+            elif czy_calkowicie_przed(poly_p, nQ, DQ): 
+                wymaga_korekty = True
+            
+            if wymaga_korekty:
+                q_id = id(poly_q)
+                if cofniecia[q_id] < limit_cofniec:
+                    cofniecia[q_id] += 1
+                    # Wyciągamy Q z miejsca 'j' i wrzucamy je PRZED 'P' (na pozycję 'i')
+                    S.insert(i, S.pop(j))
+                    zmieniono_kolejnosc = True
+                    break # Przerywamy iterację j, zaczynamy analizować nowe S[i]
+            
+            j += 1
+            
+        if not zmieniono_kolejnosc:
             i += 1
             
     return S

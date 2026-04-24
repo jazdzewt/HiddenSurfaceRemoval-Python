@@ -7,6 +7,8 @@ from camera import Camera
 from wczytywanie import wczytaj_obiekty
 from porownaj import sortuj_sciany
 
+import random
+
 szerokosc = 1200 
 wysokosc = 700
 
@@ -111,7 +113,6 @@ def main():
 
         sciany = sortuj_sciany(sciany)
 
-        print("sciany: ", sciany)
         for sciana, kolor in sciany:
             wezly_2d = []
             rysuj = True
@@ -123,6 +124,7 @@ def main():
                 wezly_2d.append(punkt_2d)
             if rysuj:
                 pygame.draw.polygon(screen, kolor, wezly_2d)
+                #pygame.draw.polygon(screen, (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)), wezly_2d)
                 pygame.draw.polygon(screen, (0, 0, 0), wezly_2d, 2)
 
         pygame.display.flip()
