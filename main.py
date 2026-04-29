@@ -4,6 +4,7 @@ import sys
 
 from camera import Camera
 from wczytywanie import wczytaj_obiekty
+from porownaj import sortuj_sciany
 
 szerokosc = 1200 
 wysokosc = 700
@@ -92,50 +93,36 @@ def main():
         # renderowanie 
         macierz_widoku = camera.macierz_widoku() 
 
+        # Uproszczona pętla renderowania z algorytmem malarskim (Newell)
 
-        sciany_renderowanie = []
+        sciany = []
 
         for obiekt in scena.obiekty:
-            przetransformowane_wezly = []
-            
-            for w in obiekt.wezly:
 
-                wezel = macierz_widoku @ w
-                przetransformowane_wezly.append(wezel)
+            # Transformacja do przestrzeni kamery - NIE nadpisujemy obiekt.wezly
+            przetransformowane_wezly = [macierz_widoku @ wezel for wezel in obiekt.wezly]
 
-            for sciana in obiekt.krawedzie:
+            for krawedz in obiekt.krawedzie:
+                sciana = [przetransformowane_wezly[indeks - 1] for indeks in krawedz]
+                sciany.append((sciana, obiekt.color))
 
-                rysowac = True
+        # Sortowanie: od najdalszych (małe Z) do najbliższych (duże Z)
 
-                wezly_na_ekranie = []
-                glebokosci_wezlow = []
-                
-                for id_wezla in sciana:
-                    wezel_3d = przetransformowane_wezly[id_wezla - 1]
-                    rzutowany_wezel = camera.rzutowanie(wezel_3d, szerokosc, wysokosc)
-                    
-                    if rzutowany_wezel:
-                        wezly_na_ekranie.append(rzutowany_wezel)
-                        glebokosci_wezlow.append(np.linalg.norm(wezel_3d[:3]))
-                    else:
-                        rysowac = False
-                        break
-                        
-                if rysowac:
+        sciany = sortuj_sciany(sciany)
 
-                    kolor = obiekt.color
-
-                    #print("glebokosci_wezlow: ", glebokosci_wezlow)
-                    glebokosc_sciany = max(glebokosci_wezlow)#sum(glebokosci_wezlow) / len(glebokosci_wezlow)
-
-                    sciany_renderowanie.append((glebokosc_sciany, wezly_na_ekranie, kolor))
-
-        # sortowanie
-        sciany_renderowanie.sort(key=lambda s: s[0], reverse=True)
-
-        for glebokosc_sciany, wezly_na_ekranie, kolor in sciany_renderowanie:
-            pygame.draw.polygon(screen, kolor, wezly_na_ekranie)
-            pygame.draw.polygon(screen, (0, 0, 0), wezly_na_ekranie, 2)
+        for sciana, kolor in sciany:
+            wezly_2d = []
+            rysuj = True
+            for wezel in sciana:
+                punkt_2d = camera.rzutowanie(wezel, szerokosc, wysokosc)
+                if punkt_2d is None:
+                    rysuj = False
+                    break
+                wezly_2d.append(punkt_2d)
+            if rysuj:
+                pygame.draw.polygon(screen, kolor, wezly_2d)
+                #pygame.draw.polygon(screen, (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)), wezly_2d)
+                pygame.draw.polygon(screen, (0, 0, 0), wezly_2d, 2)
 
         pygame.display.flip()
 
