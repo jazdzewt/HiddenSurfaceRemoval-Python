@@ -83,7 +83,7 @@ def sciany_nakladaja_sie_na_ekranie(sciana1, sciana2):
         return False # Mijają się, więc nie musimy ich sortować względem siebie
     else:
         return True # Nakładają się na ekranie
-'''
+
 def sortuj_sciany(sciany):
     
     # Słownik, który pilnuje, żebyśmy nie przekładali tych samych ścian w nieskończoność
@@ -153,31 +153,4 @@ def sortuj_sciany(sciany):
         if zmiana == False:
             i += 1
             
-    return sciany
-'''
-def sprawdz_odleglosc(sciana):
-    # Srednie Z wierzcholkow - lepsze niz max_z dla poczatkowego sortowania
-    wierzcholki = sciana[0]
-    return sum(w[2] for w in wierzcholki) / len(wierzcholki)
-
-
-def sortuj_sciany(sciany):
-
-    # Wstepne sortowanie: od najdalszych (duze srednie Z) do najblizszych
-    sciany = sorted(sciany, key=sprawdz_odleglosc, reverse=True)
-
-    
-    for i in range(len(sciany)):
-        for j in range(i + 1, len(sciany)):
-            sciana1 = sciany[i][0]
-            sciana2 = sciany[j][0]
-
-            normalna1, odleglosc1 = wektor_normalny(sciana1)
-            normalna2, odleglosc2 = wektor_normalny(sciana2)
-
-            if czy_z_tylu(sciana1, normalna2, odleglosc2):
-                sciany[i], sciany[j] = sciany[j], sciany[i]
-    
-    sciany.reverse()
-
     return sciany
