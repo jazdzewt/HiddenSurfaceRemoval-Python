@@ -1,7 +1,6 @@
 import pygame
 import numpy as np
 import sys
-from functools import cmp_to_key
 
 from camera import Camera
 from wczytywanie import wczytaj_obiekty
