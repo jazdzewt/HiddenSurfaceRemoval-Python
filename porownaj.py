@@ -1,6 +1,6 @@
 import numpy as np
 
-e = 0.0001
+e = 0.01
 
 def wektor_normalny(wielokat):
 
@@ -29,21 +29,23 @@ def wektor_normalny(wielokat):
     return None, 0
 
 def czy_z_tylu(wielokat, normalna, odleglosc):
-        
-    for wierzcholek in wielokat:
-
-        punkt = wierzcholek[:3]
-        wynik = odleglosc + np.dot(normalna, punkt) 
-        
-        if wynik >= e:
-            return False
-    return True
-
-def czy_z_przodu(wielokat, normalna, odleglosc):
     for wierzcholek in wielokat:
         punkt = wierzcholek[:3]
         wynik = odleglosc + np.dot(normalna, punkt)
-        if wynik <= -e:
+
+        if wynik > e:  # tylko wyraźnie z przodu psuje
+            return False
+
+    return True
+
+
+def czy_z_przodu(wielokat, normalna, odleglosc):
+
+    for wierzcholek in wielokat:
+        punkt = wierzcholek[:3]
+        wynik = odleglosc + np.dot(normalna, punkt)
+        
+        if wynik < -e:
             return False
     return True
 
@@ -54,12 +56,12 @@ def sprawdz_odleglosc(sciana):
 
     max_Z = 0 
 
-    # Centroid Z (srednia) - stabilniejszy niz max_Z
     for w in wierzcholki:
         if w[2] > max_Z:
             max_Z = w[2]
 
     return max_Z
+
 
 def sciany_nakladaja_sie_na_ekranie(sciana1, sciana2):
     # Najpierw znajdujemy skrajne punkty pierwszej ściany na płaskim ekranie
@@ -95,32 +97,21 @@ def sciany_nakladaja_sie_na_ekranie(sciana1, sciana2):
 
 
 def sortuj_sciany(sciany):
+    # Wstępne sortowanie po najdalszym punkcie (max Z)
+    sciany = sorted(sciany, key=sprawdz_odleglosc)#, reverse=True)
 
-    sciany = sorted(sciany, key=sprawdz_odleglosc, reverse=True)
-
-    
     for i in range(len(sciany)):
-        for j in range(i + 1, len(sciany)):
+        for j in range(i+1, len(sciany)):
+
             sciana1 = sciany[i][0]
             sciana2 = sciany[j][0]
 
-            normalna1, odleglosc1 = wektor_normalny(sciana1)
-            normalna2, odleglosc2 = wektor_normalny(sciana2)
+            if sciany_nakladaja_sie_na_ekranie(sciana1, sciana2):
+                        
 
-            #if sciany_nakladaja_sie_na_ekranie(sciana1, sciana2):
-
-                # Zamień tylko gdy OBE płaszczyzny jednoznacznie potwierdzają kolejność
-                # (and = konserwatywne, or byłoby zbyt agresywne i powodowało błędne zamiany)
-            if czy_z_tylu(sciana2, normalna1, odleglosc1) and czy_z_przodu(sciana1, normalna2, odleglosc2):
-                temp = sciany[i] 
-                sciany[i] = sciany[j]
-                sciany[j] = temp                
-                '''
-                elif czy_z_przodu(sciana1, normalna2, odleglosc2):
-                    temp = sciany[i] 
-                    sciany[i] = sciany[j]
-                    sciany[j] = temp
-                '''
-    #sciany.reverse()
-
+                normalna1, odleglosc1 = wektor_normalny(sciana1)
+                normalna2, odleglosc2 = wektor_normalny(sciana2)
+                        
+                if czy_z_tylu(sciana2, normalna1, odleglosc1) or czy_z_przodu(sciana1, normalna2, odleglosc2):
+                    sciany[i], sciany[j] = sciany[j], sciany[i]
     return sciany
