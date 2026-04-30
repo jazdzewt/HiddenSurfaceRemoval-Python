@@ -39,6 +39,15 @@ def czy_z_tylu(wielokat, normalna, odleglosc):
         if wynik >= e:
             return False
     return True
+'''
+def czy_z_przodu(wielokat, normalna, odleglosc):
+    for wierzcholek in wielokat:
+        punkt = wierzcholek[:3]
+        wynik = odleglosc + np.dot(normalna, punkt)
+        if wynik <= -e:
+            return False
+    return True
+'''
 
 def sprawdz_odleglosc(sciana):
 
@@ -73,6 +82,12 @@ def sortuj_sciany(sciany):
                 temp = sciany[i] 
                 sciany[i] = sciany[j]
                 sciany[j] = temp 
+            '''
+            elif czy_z_przodu(sciana2, normalna1, odleglosc1):
+                temp = sciany[i] 
+                sciany[i] = sciany[j]
+                sciany[j] = temp 
+            '''
     
     sciany.reverse()
 
