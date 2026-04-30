@@ -117,39 +117,26 @@ def sortuj_sciany(sciany):
             
             normalna_Q, odleglosc_Q = wektor_normalny(wielokat_Q)
             
-            # TEST 2 i 3: Sprawdzamy naturalną perspektywę
-            P_jest_za_Q = czy_z_tylu(wielokat_P, normalna_Q, odleglosc_Q)
-            Q_jest_przed_P = czy_przod(wielokat_Q, normalna_P, odleglosc_P)
-            
-            if P_jest_za_Q or Q_jest_przed_P:
+            if czy_z_tylu(wielokat_P, normalna_Q, odleglosc_Q) or czy_przod(wielokat_Q, normalna_P, odleglosc_P):
                 # Jest dobrze, P powinno zostać narysowane wcześniej niż Q
                 j += 1
                 continue
-                
-            # Jeśli dotarliśmy tutaj, znaczy że wykryto KONFLIKT PERSPEKTYWY.
-            # Trzeba sprawdzić, czy nie musimy odwrócić kolejności rysowania.
-            Q_jest_za_P = czy_z_tylu(wielokat_Q, normalna_P, odleglosc_P)
-            P_jest_przed_Q = czy_przod(wielokat_P, normalna_Q, odleglosc_Q)
             
-            if Q_jest_za_P or P_jest_przed_Q:
+            if czy_z_tylu(wielokat_Q, normalna_P, odleglosc_P) or czy_przod(wielokat_P, normalna_Q, odleglosc_Q):
                 id_Q = id(wielokat_Q)
                 
-                # Zabezpieczenie przed nieskończoną pętlą
                 
                 if ile_razy_cofnieto[id_Q] < limit_cofniec:
                     ile_razy_cofnieto[id_Q] += 1
                     
-                    # WYCIĄGAMY ścianę Q z listy i wstawiamy ją PRZED ścianę P
                     wyciagnieta_sciana = sciany.pop(j)
                     sciany.insert(i, wyciagnieta_sciana)
                     
                     zmiana = True
-                    break # Przerywamy pętlę "j", bo zmieniliśmy ścianę "P" na nową
+                    break
                     
-            j += 1  # Q nie wymaga zamiany lub osiągnięto limit
+            j += 1
             
-        # Jeśli przeszliśmy wszystkie ściany "Q" i nic się nie zmieniło, 
-        # przechodzimy do analizy następnej ściany "P"
         if zmiana == False:
             i += 1
             

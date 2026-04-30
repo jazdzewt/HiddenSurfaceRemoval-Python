@@ -2,7 +2,7 @@ import numpy as np
 import os
 
 from obiekt import Obiekt, Scena
-
+from dzielenie import podziel
 
 def wczytaj_obiekty(folder_path):
 
@@ -38,6 +38,8 @@ def wczytaj_obiekty(folder_path):
 
                 if obiekt.wezly:
                     obiekt.wezly = np.array(obiekt.wezly)
+
+                    #podziel(obiekt)
 
                     #print(obiekt.name)
                     #print()
