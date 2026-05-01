@@ -1,4 +1,4 @@
-from decimal import MAX_EMAX
+#from decimal import MAX_EMAX
 import numpy as np
 
 e = 0.0001
@@ -86,14 +86,8 @@ def sciany_nakladaja_sie_na_ekranie(sciana1, sciana2):
 
 def sortuj_sciany(sciany):
     
-    # Słownik, który pilnuje, żebyśmy nie przekładali tych samych ścian w nieskończoność
-    ile_razy_cofnieto = {}
-    
-    for sciana in sciany:
-        id_sciany = id(sciana[0])
-        ile_razy_cofnieto[id_sciany] = 0
-    
-    limit_cofniec = len(sciany)
+    # Zbiór, który pilnuje, żebyśmy nie przekładali tych samych par ścian w nieskończoność
+    #przesuniete_pary = set()
 
     # Rozpoczynamy dokładne sprawdzanie i poprawianie kolejności
     i = 0
@@ -123,17 +117,17 @@ def sortuj_sciany(sciany):
                 continue
             
             if czy_z_tylu(wielokat_Q, normalna_P, odleglosc_P) or czy_przod(wielokat_P, normalna_Q, odleglosc_Q):
-                id_Q = id(wielokat_Q)
+                #id_P = id(wielokat_P)
+                #id_Q = id(wielokat_Q)
                 
-                
-                if ile_razy_cofnieto[id_Q] < limit_cofniec:
-                    ile_razy_cofnieto[id_Q] += 1
+                #if (id_Q, id_P) not in przesuniete_pary:
+                    #przesuniete_pary.add((id_Q, id_P))
                     
-                    wyciagnieta_sciana = sciany.pop(j)
-                    sciany.insert(i, wyciagnieta_sciana)
+                wyciagnieta_sciana = sciany.pop(j)
+                sciany.insert(i, wyciagnieta_sciana)
                     
-                    zmiana = True
-                    break
+                zmiana = True
+                break
                     
             j += 1
             
