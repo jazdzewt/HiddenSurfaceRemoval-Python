@@ -6,8 +6,6 @@ from camera import Camera
 from wczytywanie import wczytaj_obiekty
 from porownaj import sortuj_sciany
 
-import random
-
 szerokosc = 1200 
 wysokosc = 700
 
@@ -95,20 +93,23 @@ def main():
         # renderowanie 
         macierz_widoku = camera.macierz_widoku() 
 
-        # Uproszczona pętla renderowania z algorytmem malarskim (Newell)
-
         sciany = []
 
         for obiekt in scena.obiekty:
 
-            # Transformacja do przestrzeni kamery - NIE nadpisujemy obiekt.wezly
-            przetransformowane_wezly = [macierz_widoku @ wezel for wezel in obiekt.wezly]
+            przetransformowane_wezly = []
+
+            for wezel in obiekt.wezly:
+                przetransformowane_wezly.append(macierz_widoku @ wezel)
 
             for krawedz in obiekt.krawedzie:
-                sciana = [przetransformowane_wezly[indeks - 1] for indeks in krawedz]
-                sciany.append((sciana, obiekt.color))
 
-        # Sortowanie: od najdalszych (małe Z) do najbliższych (duże Z)
+                sciana = []
+
+                for indeks in krawedz:
+                    sciana.append(przetransformowane_wezly[indeks - 1])
+                    
+                sciany.append((sciana, obiekt.color))
 
         sciany = sortuj_sciany(sciany)
 

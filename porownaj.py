@@ -1,4 +1,3 @@
-#from decimal import MAX_EMAX
 import numpy as np
 
 e = 0.0001
@@ -14,7 +13,6 @@ def wektor_normalny(wielokat):
         wektor1 = drugi_punkt - pierwszy_punkt
         wektor2 = trzeci_punkt - pierwszy_punkt
         
-        # iloczyn wektorowy 
         normalna = np.cross(wektor1, wektor2)
         dlugosc = np.linalg.norm(normalna)
         
@@ -30,22 +28,22 @@ def wektor_normalny(wielokat):
             
     return None, 0
 
-def czy_z_tylu(wielokat, normalna, odleglosc):
+def czy_z_tylu(wielokat, normalna, d):
         
     for wierzcholek in wielokat:
 
         punkt = wierzcholek[:3]
-        wynik = odleglosc + np.dot(normalna, punkt) 
+        wynik = d + np.dot(normalna, punkt) 
         
         if wynik >= e:
             return False
     return True
 
-def czy_przod(wielokat, normalna, odleglosc):
+def czy_przod(wielokat, normalna, d):
         
     for wierzcholek in wielokat:
         punkt = wierzcholek[:3]
-        wynik = odleglosc + np.dot(normalna, punkt)
+        wynik = d + np.dot(normalna, punkt)
         
         if wynik <= -e:
             return False
@@ -53,7 +51,7 @@ def czy_przod(wielokat, normalna, odleglosc):
     return True
 
 def sciany_nakladaja_sie_na_ekranie(sciana1, sciana2):
-    # Najpierw znajdujemy skrajne punkty pierwszej ściany na płaskim ekranie
+
     x1 = []
     y1 = []
 
@@ -63,10 +61,11 @@ def sciany_nakladaja_sie_na_ekranie(sciana1, sciana2):
         x1.append(wierzcholek[0] / z)
         y1.append(wierzcholek[1] / z)
         
-    min_x1, max_x1 = min(x1), max(x1)
-    min_y1, max_y1 = min(y1), max(y1)
+    min_x1 = min(x1)
+    max_x1 = max(x1)
+    min_y1 = min(y1)
+    max_y1 = max(y1)
 
-    # To samo robimy dla drugiej ściany
     x2 = []
     y2 = []
     for wierzcholek in sciana2:
@@ -75,63 +74,54 @@ def sciany_nakladaja_sie_na_ekranie(sciana1, sciana2):
         x2.append(wierzcholek[0] / z)
         y2.append(wierzcholek[1] / z)
         
-    min_x2, max_x2 = min(x2), max(x2)
-    min_y2, max_y2 = min(y2), max(y2)
+    min_x2 = min(x2)
+    max_x2 = max(x2)
+    min_y2 = min(y2)
+    max_y2 = max(y2)
     
-    # Sprawdzamy czy narysowane prostokąty się mijają (nie dotykają się)
     if max_x1 < min_x2 or max_x2 < min_x1 or max_y1 < min_y2 or max_y2 < min_y1:
-        return False # Mijają się, więc nie musimy ich sortować względem siebie
+        return False
     else:
-        return True # Nakładają się na ekranie
+        return True
 
 def sortuj_sciany(sciany):
     
-    # Zbiór, który pilnuje, żebyśmy nie przekładali tych samych par ścian w nieskończoność
-    #przesuniete_pary = set()
-
-    # Rozpoczynamy dokładne sprawdzanie i poprawianie kolejności
     i = 0
     while i < len(sciany):
-        sciana_P = sciany[i]
-        wielokat_P = sciana_P[0]
+        sciana1 = sciany[i][0]
         
-        normalna_P, odleglosc_P = wektor_normalny(wielokat_P)
+        normalna1, odleglosc1 = wektor_normalny(sciana1)
         zmiana = False
         
         j = i + 1
         while j < len(sciany):
-            sciana_Q = sciany[j]
-            wielokat_Q = sciana_Q[0]
-            
-            # TEST 1: Czy ściany w ogóle wchodzą na siebie na ekranie?
-            
-            if sciany_nakladaja_sie_na_ekranie(wielokat_P, wielokat_Q) == False:
-                j += 1
-                continue # Nie nakładają się, idziemy sprawdzić kolejną ścianę
-            
-            normalna_Q, odleglosc_Q = wektor_normalny(wielokat_Q)
-            
-            if czy_z_tylu(wielokat_P, normalna_Q, odleglosc_Q) or czy_przod(wielokat_Q, normalna_P, odleglosc_P):
-                # Jest dobrze, P powinno zostać narysowane wcześniej niż Q
-                j += 1
+            sciana2 = sciany[j][0]
+                      
+            if sciany_nakladaja_sie_na_ekranie(sciana1, sciana2) == False:
+
+                j = j + 1
+
                 continue
             
-            if czy_z_tylu(wielokat_Q, normalna_P, odleglosc_P) or czy_przod(wielokat_P, normalna_Q, odleglosc_Q):
-                #id_P = id(wielokat_P)
-                #id_Q = id(wielokat_Q)
-                
-                #if (id_Q, id_P) not in przesuniete_pary:
-                    #przesuniete_pary.add((id_Q, id_P))
-                    
-                wyciagnieta_sciana = sciany.pop(j)
-                sciany.insert(i, wyciagnieta_sciana)
+            normalna2, odleglosc2 = wektor_normalny(sciana2)
+            
+            if czy_z_tylu(sciana1, normalna2, odleglosc2) or czy_przod(sciana2, normalna1, odleglosc1):
+
+                j = j + 1
+
+                continue
+            
+            if czy_z_tylu(sciana2, normalna1, odleglosc1) or czy_przod(sciana1, normalna2, odleglosc2):
+
+                wyciagniete = sciany.pop(j)
+                sciany.insert(i, wyciagniete)
                     
                 zmiana = True
                 break
                     
-            j += 1
+            j = j + 1
             
         if zmiana == False:
-            i += 1
+            i = i + 1
             
     return sciany
