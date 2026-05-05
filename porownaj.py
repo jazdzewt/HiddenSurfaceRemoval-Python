@@ -50,6 +50,7 @@ def czy_przod(wielokat, normalna, d):
             
     return True
 
+
 def czy_otoczenia_wykluczaja(sciana1, sciana2):
 
     x1 = []
@@ -59,8 +60,8 @@ def czy_otoczenia_wykluczaja(sciana1, sciana2):
     for wierzcholek in sciana1:
         x1.append(wierzcholek[0])
         y1.append(wierzcholek[1])
-        z1.append(wierzcholek[2])
-
+        z1.append(abs(wierzcholek[2]))
+        
     x2 = []
     y2 = []
     z2 = []
@@ -68,20 +69,20 @@ def czy_otoczenia_wykluczaja(sciana1, sciana2):
     for wierzcholek in sciana2:
         x2.append(wierzcholek[0])
         y2.append(wierzcholek[1])
-        z2.append(wierzcholek[2])
+        z2.append(abs(wierzcholek[2]))
 
-    if max(x1) < min(x2) or max(x2) < min(x1):
+    # tu jak na and się zmieni to działa
+    if max(x1) < min(x2) or max(x2) < min(x1): 
         return True
-    
     if max(y1) < min(y2) or max(y2) < min(y1):
         return True
 
-    if max(z1) < min(z2) or max(z2) < min(z1):
+    if min(z1) > max(z2):
         return True
 
     return False
 
-def czy_nakladaja(sciana1, sciana2):
+def sciany_nakladaja_sie_na_ekranie(sciana1, sciana2):
 
     x1 = []
     y1 = []
@@ -111,57 +112,54 @@ def czy_nakladaja(sciana1, sciana2):
     max_y2 = max(y2)
     
     if max_x1 < min_x2 or max_x2 < min_x1 or max_y1 < min_y2 or max_y2 < min_y1:
-        return True
-    else:
         return False
+    else:
+        return True
 
 def sortuj_sciany(sciany):
+    
     i = 0
     while i < len(sciany):
         sciana1 = sciany[i][0]
+        
         normalna1, odleglosc1 = wektor_normalny(sciana1)
-
         zmiana = False
         
         j = i + 1
         while j < len(sciany):
             sciana2 = sciany[j][0]
-            normalna2, odleglosc2 = wektor_normalny(sciana2)
 
-            # KROK 1: Czy otoczenia wykluczają zasłanianie?
+            
             if czy_otoczenia_wykluczaja(sciana1, sciana2):
                 j += 1
                 continue
-                
-            # KROK 2: Czy rzuty wykluczają zasłanianie?
-            # UWAGA: Skoro zmieniłeś nazwę na 'czy_nakladaja', to rozumiem, 
-            # że funkcja zwraca True, jeśli się stykają. Zatem jeśli się NIE NAKŁADAJĄ:
-            if czy_nakladaja(sciana1, sciana2):
-                j += 1
-                continue
-                
-            # KROK 3: Czy sciana1 jest z tyłu?
-            if czy_z_tylu(sciana2, normalna1, odleglosc1):
-                j += 1
-                continue
-                
-            # KROK 4: Czy sciana2 jest z przodu?
-            if czy_przod(sciana1, normalna2, odleglosc2):
-                j += 1
-                continue
+            
+                      
+            if sciany_nakladaja_sie_na_ekranie(sciana1, sciana2) == False:
 
-            # (!) TEST ZAMIANY
-            # Dotarliśmy tutaj? To znaczy, że ściany kolidują. Sprawdzamy czy kolejność jest zła.
-            if czy_z_tylu(sciana1, normalna2, odleglosc2) and czy_przod(sciana2, normalna1, odleglosc1):
+                j = j + 1
+
+                continue
+            
+            normalna2, odleglosc2 = wektor_normalny(sciana2)
+            
+            if czy_z_tylu(sciana1, normalna2, odleglosc2) or czy_przod(sciana2, normalna1, odleglosc1):
+
+                j = j + 1
+
+                continue
+            
+            if czy_z_tylu(sciana2, normalna1, odleglosc1) or czy_przod(sciana1, normalna2, odleglosc2):
+
                 wyciagniete = sciany.pop(j)
                 sciany.insert(i, wyciagniete)
+                    
                 zmiana = True
                 break
+                    
+            j = j + 1
             
-            # Żaden test nie pomógł, idziemy do następnej ściany
-            j += 1
-            
-        if not zmiana:
-            i += 1
+        if zmiana == False:
+            i = i + 1
             
     return sciany
